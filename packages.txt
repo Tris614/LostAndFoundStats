@@ -1,0 +1,4 @@
+# Required system dependencies for pyodbc and Azure SQL
+unixodbc
+unixodbc-dev
+msodbcsql18
