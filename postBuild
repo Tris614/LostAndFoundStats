@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+# Install ODBC Driver 18 silently (EULA accepted automatically)
+apt-get update
+ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc unixodbc-dev
