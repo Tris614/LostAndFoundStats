@@ -1,64 +1,54 @@
-# shared db helper
-
-import pyodbc
 import pandas as pd
-import traceback
+from sqlalchemy import create_engine
+import urllib
 import streamlit as st
 
-# DB CONFIG
-DB_CONFIG = {
-    "server": "richfield.database.windows.net,1433",  # confirm later
-    "database": "Richfield",                     # confirm later
-    "username": "richfieldDev",                       # confirm later
-    "password": "Rich@123",                           # confirm later
-    "driver": "ODBC Driver 18 for SQL Server"
-}
 
+def get_engine():
+    secrets = st.secrets["azure_sql"]
 
-def get_connection():
-    # create pyodbc connection
+    # e.g. "richfield.database.windows.net,1433"
+    server_full = secrets["server"]
+    host, port = server_full.split(",")
+    database = secrets["database"]
+    username = secrets["username"]
+    password = secrets["password"]
 
-    conn_str = (
-        f"DRIVER={{{DB_CONFIG['driver']}}};"
-        f"SERVER={DB_CONFIG['server']};"
-        f"DATABASE={DB_CONFIG['database']};"
-        f"UID={DB_CONFIG['username']};"
-        f"PWD={DB_CONFIG['password']};"
-        "Encrypt=yes;TrustServerCertificate=yes;"
+    # Build ODBC connection string
+    odbc_str = (
+        "Driver={ODBC Driver 17 for SQL Server};"
+        f"Server={host},{port};"
+        f"Database={database};"
+        f"Uid={username};"
+        f"Pwd={password};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
     )
-    return pyodbc.connect(conn_str, timeout=10)
+
+    # URL encode and build SQLAlchemy engine
+    conn_str = f"mssql+pyodbc:///?odbc_connect={urllib.parse.quote_plus(odbc_str)}"
+    return create_engine(conn_str)
 
 
-def query_to_df(sql: str, params: list = None, fallback_df=None):
-    # run  query and return pandas DataFrame.
-    # if DB connection fails, return fallback_df
-    # parameter placeholders '?' for pyodbc.
-
+def query_to_df(query, params=None, fallback_df=None):
     try:
-        conn = get_connection()
-        df = pd.read_sql_query(sql, conn, params=params)
-        conn.close()
+        engine = get_engine()
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn, params=params)
         return df
     except Exception as e:
-        # debugging message
-        st.error(
-            "Database connection/query failed. Using fallback/mocked data if provided.")
-        st.write("DB error:", str(e))
-        st.write(traceback.format_exc())
+        st.error(f"⚠️ Database connection failed: {e}")
         if fallback_df is not None:
             return fallback_df
-        else:
-            # if no fallback provided, return empty dataframe
-            return pd.DataFrame()
+        return pd.DataFrame()
 
 
 def test_connection():
-    # function to test connection
     try:
-        conn = get_connection()
-        conn.close()
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
         return True
-    except Exception as e:
-        st.error("Unable to connect to DB. Check DB_CONFIG in db_helper.py.")
-        st.write(str(e))
+    except Exception:
         return False
