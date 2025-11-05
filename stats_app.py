@@ -132,58 +132,6 @@ if st.sidebar.button("Test DB connection"):
     else:
         st.sidebar.error("DB connection failed - using mock data fallback")
 
-# fallback data
-
-
-def gen_ran_val(num_items: int = 300, year: int = datetime.now().year) -> pd.DataFrame:
-    rng = np.random.default_rng(seed=123)
-    categories = ["Electronics", "Clothing",
-                  "Personal", "Miscellaneous", "Stationery"]
-    statuses = ["Lost", "Found", "Claimed"]
-    rows = []
-    for i in range(1, num_items + 1):
-        month = rng.integers(1, min(12, datetime.now().month) + 1)
-        day = rng.integers(1, 28)
-        dt = datetime(year, month, int(day), rng.integers(8, 18), 0, 0)
-        status = rng.choice(statuses, p=[0.45, 0.45, 0.1])
-        category = rng.choice(categories)
-        rows.append({
-            "ItemID": i,
-            "UserID": int(rng.integers(1, 50)),
-            "Title": f"Item {i}",
-            "Description": f"Mock description {i}",
-            "Category": category,
-            "Location": f"Location {int(rng.integers(1,10))}",
-            "DateTime": dt,
-            "Status": status,
-            "CreatedBy": "system"
-        })
-    return pd.DataFrame(rows)
-
-
-def gen_ran_claims(items_df: pd.DataFrame) -> pd.DataFrame:
-    rng = np.random.default_rng(seed=999)
-    claims = []
-    claimable_items = items_df.sample(frac=0.2, random_state=42)
-    claim_id = 1
-    for _, row in claimable_items.iterrows():
-        n_claims = rng.integers(0, 3)
-        for _ in range(n_claims):
-            status = rng.choice(
-                ["Pending", "Approved", "Rejected"], p=[0.5, 0.3, 0.2])
-            claims.append({
-                "ClaimID": claim_id,
-                "ItemID": int(row["ItemID"]),
-                "UserID": int(rng.integers(1, 50)),
-                "Status": status,
-                "CreatedBy": f"user{int(rng.integers(1,50))}",
-                "CreatedDate": row["DateTime"] + pd.Timedelta(days=int(rng.integers(0, 10))),
-                "Reason": "Mock claim"
-            })
-            claim_id += 1
-    return pd.DataFrame(claims)
-
-
 # pulling from DB
 @st.cache_data(ttl=300)
 def load_items_from_db(start_dt, end_dt):
@@ -193,9 +141,8 @@ def load_items_from_db(start_dt, end_dt):
     FROM Items
     WHERE DateLost BETWEEN ? AND ?
     """
-    # fallback data for when DB fails
-    fallback = gen_ran_val(300)
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt], fallback_df=fallback)
+
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 @st.cache_data(ttl=300)
@@ -206,9 +153,7 @@ def load_claims_from_db(start_dt, end_dt):
     FROM Claims
     WHERE CreatedDate BETWEEN ? AND ?
     """
-    fallback_items = gen_ran_val(300)
-    fallback_claims = gen_ran_claims(fallback_items)
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt], fallback_df=fallback_claims)
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 # UI
@@ -285,3 +230,4 @@ st.dataframe(items_df.sort_values(by="DateLost", ascending=False).head(20))
 
 st.markdown("### Recent claims (preview)")
 st.dataframe(claims_df.sort_values(by="CreatedDate", ascending=False).head(20))
+
