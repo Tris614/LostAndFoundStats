@@ -12,11 +12,7 @@ st.set_page_config(page_title="Admin Stats", layout="centered",
 # css
 st.markdown(
     """
-    <style>
-        /*hide streamlit options*/
-        header[data-testid="stHeader"], #MainMenu, footer {
-            display: none !important;
-        }
+
 
 
         /*background*/
@@ -122,17 +118,9 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-
-# DB connect test button
-
-if st.sidebar.button("Test DB connection"):
-    ok = db_helper.test_connection()
-    if ok:
-        st.sidebar.success("DB connection OK")
-    else:
-        st.sidebar.error("DB connection failed - using mock data fallback")
-
 # pulling from DB
+
+
 @st.cache_data(ttl=300)
 def load_items_from_db(start_dt, end_dt):
 
@@ -186,13 +174,13 @@ for col in ["DateLost", "CreatedDate"]:
         claims_df["CreatedDate"] = pd.to_datetime(
             claims_df["CreatedDate"], errors="coerce")
 
-# key points
-total_lost = int((items_df["Status"] == "Lost").sum()
+# key points indicators
+total_lost = int((items_df["Status"] == 0).sum()
                  ) if "Status" in items_df else 0
-total_found = int((items_df["Status"] == "Found").sum()
+total_found = int((items_df["Status"] == 1).sum()
                   ) if "Status" in items_df else 0
 total_claimed = int(
-    (items_df["Status"] == "Claimed").sum()) if "Status" in items_df else 0
+    (items_df["Status"] == 2).sum()) if "Status" in items_df else 0
 
 # recovery rate
 recovery_rate = (total_claimed / total_lost * 100) if total_lost > 0 else 0.0
@@ -209,25 +197,33 @@ if "Category" in items_df.columns:
                      values="count", title="Category Breakdown")
     st.plotly_chart(fig_pie, use_container_width=True)
 
+st.write(items_df[["ItemId", "Status", "DateLost"]].head(10))
+
 # lost vs found per month
-if "DateLost" in items_df.columns:
+if "DateLost" in items_df.columns and "Status" in items_df.columns:
     df_month = items_df.copy()
     df_month["month"] = df_month["DateLost"].dt.to_period("M").astype(str)
+
+    # Map numeric status codes to readable labels
+    status_map = {0: "Lost", 1: "Found", 2: "Claimed"}
+    df_month["StatusLabel"] = df_month["Status"].map(status_map)
+
+    # Group and aggregate
     monthly = df_month.groupby(
-        ["month", "Status"]).size().reset_index(name="count")
-    # only need lost and found statuses
-    monthly = monthly[monthly["Status"].isin(["Lost", "Found"])]
+        ["month", "StatusLabel"]).size().reset_index(name="count")
+
+    # Filter only Lost/Found
+    monthly = monthly[monthly["StatusLabel"].isin(["Lost", "Found"])]
+
     if not monthly.empty:
-        fig_bar = px.bar(monthly, x="month", y="count", color="Status", barmode="group",
-                         title="Lost vs Found (per month)")
+        fig_bar = px.bar(
+            monthly,
+            x="month",
+            y="count",
+            color="StatusLabel",
+            barmode="group",
+            title="Lost vs Found (per month)"
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
-
-
-# can remove all below
-# Show simple data table preview
-st.markdown("### Recent items (preview)")
-st.dataframe(items_df.sort_values(by="DateLost", ascending=False).head(20))
-
-st.markdown("### Recent claims (preview)")
-st.dataframe(claims_df.sort_values(by="CreatedDate", ascending=False).head(20))
-
+    else:
+        st.warning("No Lost or Found items found for the selected period.")
