@@ -16,7 +16,7 @@ def get_engine():
 
     # Build ODBC connection string
     odbc_str = (
-        "Driver={ODBC Driver 18 for SQL Server};"
+        "Driver={ODBC Driver 17 for SQL Server};"
         f"Server={host},{port};"
         f"Database={database};"
         f"Uid={username};"
@@ -52,3 +52,4 @@ def test_connection():
         return True
     except Exception:
         return False
+
