@@ -13,7 +13,11 @@ st.set_page_config(page_title="Admin Reports", layout="centered",
 st.markdown(
     """
 
-
+    <style>
+        /*hide streamlit options*/
+        header[data-testid="stHeader"], #MainMenu, footer {
+            display: none !important;
+        }
 
         /*background*/
         [data-testid="stAppViewContainer"] {
@@ -231,6 +235,7 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
