@@ -168,7 +168,6 @@ def load_claims(start_dt, end_dt):
     WHERE CreatedDate BETWEEN ? AND ?
     ORDER BY CreatedDate DESC
     """
-    fallback = pd.DataFrame()
     return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
@@ -236,4 +235,5 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
