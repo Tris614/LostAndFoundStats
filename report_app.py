@@ -156,7 +156,7 @@ def load_items(start_dt, end_dt):
     ORDER BY DateLost DESC
     """
 
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 @st.cache_data(ttl=300)
@@ -169,7 +169,7 @@ def load_claims(start_dt, end_dt):
     ORDER BY CreatedDate DESC
     """
     fallback = pd.DataFrame()
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt], fallback_df=fallback)
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 # date ranges
@@ -236,3 +236,4 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
