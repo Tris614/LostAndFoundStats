@@ -12,8 +12,11 @@ st.set_page_config(page_title="Admin Stats", layout="centered",
 # css
 st.markdown(
     """
-
-
+    <style>
+        /*hide streamlit options*/
+        header[data-testid="stHeader"], #MainMenu, footer {
+            display: none !important;
+        }
 
         /*background*/
         [data-testid="stAppViewContainer"] {
@@ -227,3 +230,4 @@ if "DateLost" in items_df.columns and "Status" in items_df.columns:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
+
