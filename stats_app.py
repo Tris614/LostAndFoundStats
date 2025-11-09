@@ -130,7 +130,7 @@ def load_items_from_db(start_dt, end_dt):
     sql = """
     SELECT ItemId, UserId, Title, LostDescription, Category, Location, DateLost, Status, CreatedBy, CreatedDate
     FROM Items
-    WHERE DateLost BETWEEN ? AND ?
+    WHERE CreatedDate BETWEEN ? AND ?
     """
 
     return db_helper.query_to_df(sql, params=(start_dt, end_dt))
@@ -169,10 +169,10 @@ items_df = load_items_from_db(start_dt, end_dt)
 claims_df = load_claims_from_db(start_dt, end_dt)
 
 # validate datetimes columns
-for col in ["DateLost", "CreatedDate"]:
+for col in ["CreatedDate"]:
     if col in items_df.columns:
-        items_df["DateLost"] = pd.to_datetime(
-            items_df["DateLost"], errors="coerce")
+        items_df["CreatedDate"] = pd.to_datetime(
+            items_df["CreatedDate"], errors="coerce")
     if col in claims_df.columns:
         claims_df["CreatedDate"] = pd.to_datetime(
             claims_df["CreatedDate"], errors="coerce")
@@ -200,12 +200,12 @@ if "Category" in items_df.columns:
                      values="count", title="Category Breakdown")
     st.plotly_chart(fig_pie, use_container_width=True)
 
-st.write(items_df[["ItemId", "Status", "DateLost"]].head(10))
+st.write(items_df[["ItemId", "Status", "CreatedDate"]].head(10))
 
 # lost vs found per month
-if "DateLost" in items_df.columns and "Status" in items_df.columns:
+if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
     df_month = items_df.copy()
-    df_month["month"] = df_month["DateLost"].dt.to_period("M").astype(str)
+    df_month["month"] = df_month["CreatedDate"].dt.to_period("M").astype(str)
 
     # Map numeric status codes to readable labels
     status_map = {0: "Lost", 1: "Found", 2: "Claimed"}
@@ -230,4 +230,5 @@ if "DateLost" in items_df.columns and "Status" in items_df.columns:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
+
 
