@@ -152,8 +152,8 @@ def load_items(start_dt, end_dt):
     sql = """
     SELECT ItemId, UserId, Title, LostDescription, Category, Location, DateLost, Status, CreatedBy, CreatedDate
     FROM Items
-    WHERE DateLost BETWEEN ? AND ?
-    ORDER BY DateLost DESC
+    WHERE CreatedDate BETWEEN ? AND ?
+    ORDER BY CreatedDate DESC
     """
 
     return db_helper.query_to_df(sql, params=[start_dt, end_dt])
@@ -198,16 +198,16 @@ def to_excel_bytes(dfs: dict) -> bytes:
 def prep_export(report_type: str, items_filtered, claims_filtered):
     if report_type == "All":
         sheets = {
-            "Lost Items": items_filtered[items_filtered["Status"] == "Lost"].sort_values("DateLost"),
-            "Found Items": items_filtered[items_filtered["Status"] == "Found"].sort_values("DateLost"),
+            "Lost Items": items_filtered[items_filtered["Status"] == "Lost"].sort_values("CreatedDate"),
+            "Found Items": items_filtered[items_filtered["Status"] == "Found"].sort_values("CreatedDate"),
             "Claims": claims_filtered.sort_values("CreatedDate")
         }
     elif report_type == "Lost":
         sheets = {
-            "Lost Items": items_filtered[items_filtered["Status"] == "Lost"].sort_values("DateLost")}
+            "Lost Items": items_filtered[items_filtered["Status"] == "Lost"].sort_values("CreatedDate")}
     elif report_type == "Found":
         sheets = {
-            "Found Items": items_filtered[items_filtered["Status"] == "Found"].sort_values("DateLost")}
+            "Found Items": items_filtered[items_filtered["Status"] == "Found"].sort_values("CreatedDate")}
     elif report_type == "Claims":
         sheets = {"Claims": claims_filtered.sort_values("CreatedDate")}
     else:
@@ -235,3 +235,4 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
