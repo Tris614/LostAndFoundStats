@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from datetime import datetime, timedelta
 
@@ -122,80 +121,18 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-
-# DB connect test button
-
-if st.sidebar.button("Test DB connection"):
-    ok = db_helper.test_connection()
-    if ok:
-        st.sidebar.success("DB connection OK")
-    else:
-        st.sidebar.error("DB connection failed - using mock data fallback")
-
-# fallback data
-
-
-def gen_ran_val(num_items: int = 300, year: int = datetime.now().year) -> pd.DataFrame:
-    rng = np.random.default_rng(seed=123)
-    categories = ["Electronics", "Clothing",
-                  "Personal", "Miscellaneous", "Stationery"]
-    statuses = ["Lost", "Found", "Claimed"]
-    rows = []
-    for i in range(1, num_items + 1):
-        month = rng.integers(1, min(12, datetime.now().month) + 1)
-        day = rng.integers(1, 28)
-        dt = datetime(year, month, int(day), rng.integers(8, 18), 0, 0)
-        status = rng.choice(statuses, p=[0.45, 0.45, 0.1])
-        category = rng.choice(categories)
-        rows.append({
-            "ItemID": i,
-            "UserID": int(rng.integers(1, 50)),
-            "Title": f"Item {i}",
-            "Description": f"Mock description {i}",
-            "Category": category,
-            "Location": f"Location {int(rng.integers(1,10))}",
-            "DateTime": dt,
-            "Status": status,
-            "CreatedBy": "system"
-        })
-    return pd.DataFrame(rows)
-
-
-def gen_ran_claims(items_df: pd.DataFrame) -> pd.DataFrame:
-    rng = np.random.default_rng(seed=999)
-    claims = []
-    claimable_items = items_df.sample(frac=0.2, random_state=42)
-    claim_id = 1
-    for _, row in claimable_items.iterrows():
-        n_claims = rng.integers(0, 3)
-        for _ in range(n_claims):
-            status = rng.choice(
-                ["Pending", "Approved", "Rejected"], p=[0.5, 0.3, 0.2])
-            claims.append({
-                "ClaimID": claim_id,
-                "ItemID": int(row["ItemID"]),
-                "UserID": int(rng.integers(1, 50)),
-                "Status": status,
-                "CreatedBy": f"user{int(rng.integers(1,50))}",
-                "CreatedDate": row["DateTime"] + pd.Timedelta(days=int(rng.integers(0, 10))),
-                "Reason": "Mock claim"
-            })
-            claim_id += 1
-    return pd.DataFrame(claims)
-
-
 # pulling from DB
+
 @st.cache_data(ttl=300)
 def load_items_from_db(start_dt, end_dt):
 
     sql = """
     SELECT ItemId, UserId, Title, LostDescription, Category, Location, DateLost, Status, CreatedBy, CreatedDate
     FROM Items
-    WHERE DateLost BETWEEN ? AND ?
+    WHERE CreatedDate BETWEEN ? AND ?
     """
-    # fallback data for when DB fails
-    fallback = gen_ran_val(300)
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt], fallback_df=fallback)
+
+    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
 
 
 @st.cache_data(ttl=300)
@@ -206,9 +143,7 @@ def load_claims_from_db(start_dt, end_dt):
     FROM Claims
     WHERE CreatedDate BETWEEN ? AND ?
     """
-    fallback_items = gen_ran_val(300)
-    fallback_claims = gen_ran_claims(fallback_items)
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt], fallback_df=fallback_claims)
+    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
 
 
 # UI
@@ -233,21 +168,21 @@ items_df = load_items_from_db(start_dt, end_dt)
 claims_df = load_claims_from_db(start_dt, end_dt)
 
 # validate datetimes columns
-for col in ["DateLost", "CreatedDate"]:
+for col in ["CreatedDate"]:
     if col in items_df.columns:
-        items_df["DateLost"] = pd.to_datetime(
-            items_df["DateLost"], errors="coerce")
+        items_df["CreatedDate"] = pd.to_datetime(
+            items_df["CreatedDate"], errors="coerce")
     if col in claims_df.columns:
         claims_df["CreatedDate"] = pd.to_datetime(
             claims_df["CreatedDate"], errors="coerce")
 
-# key points
-total_lost = int((items_df["Status"] == "Lost").sum()
+# key points indicators
+total_lost = int((items_df["Status"] == 0).sum()
                  ) if "Status" in items_df else 0
-total_found = int((items_df["Status"] == "Found").sum()
+total_found = int((items_df["Status"] == 1).sum()
                   ) if "Status" in items_df else 0
 total_claimed = int(
-    (items_df["Status"] == "Claimed").sum()) if "Status" in items_df else 0
+    (items_df["Status"] == 2).sum()) if "Status" in items_df else 0
 
 # recovery rate
 recovery_rate = (total_claimed / total_lost * 100) if total_lost > 0 else 0.0
@@ -264,24 +199,33 @@ if "Category" in items_df.columns:
                      values="count", title="Category Breakdown")
     st.plotly_chart(fig_pie, use_container_width=True)
 
+st.write(items_df[["ItemId", "Status", "CreatedDate"]].head(10))
+
 # lost vs found per month
-if "DateLost" in items_df.columns:
+if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
     df_month = items_df.copy()
-    df_month["month"] = df_month["DateLost"].dt.to_period("M").astype(str)
+    df_month["month"] = df_month["CreatedDate"].dt.to_period("M").astype(str)
+
+    # Map numeric status codes to readable labels
+    status_map = {0: "Lost", 1: "Found", 2: "Claimed"}
+    df_month["StatusLabel"] = df_month["Status"].map(status_map)
+
+    # Group and aggregate
     monthly = df_month.groupby(
-        ["month", "Status"]).size().reset_index(name="count")
-    # only need lost and found statuses
-    monthly = monthly[monthly["Status"].isin(["Lost", "Found"])]
+        ["month", "StatusLabel"]).size().reset_index(name="count")
+
+    # Filter only Lost/Found
+    monthly = monthly[monthly["StatusLabel"].isin(["Lost", "Found"])]
+
     if not monthly.empty:
-        fig_bar = px.bar(monthly, x="month", y="count", color="Status", barmode="group",
-                         title="Lost vs Found (per month)")
+        fig_bar = px.bar(
+            monthly,
+            x="month",
+            y="count",
+            color="StatusLabel",
+            barmode="group",
+            title="Lost vs Found (per month)"
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
-
-
-# can remove all below
-# Show simple data table preview
-st.markdown("### Recent items (preview)")
-st.dataframe(items_df.sort_values(by="DateLost", ascending=False).head(20))
-
-st.markdown("### Recent claims (preview)")
-st.dataframe(claims_df.sort_values(by="CreatedDate", ascending=False).head(20))
+    else:
+        st.warning("No Lost or Found items found for the selected period.")
