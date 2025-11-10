@@ -55,12 +55,12 @@ st.markdown(
             opacity: 0.9;
         }
 
-        .nav-links {
+        .sys-label {
             display: flex;
             gap: 2.5rem;
         }
 
-        .nav-links a {
+        .sys-label a {
             color: white;
             text-decoration: none;
             font-size: 1.10rem;
@@ -106,10 +106,7 @@ st.markdown("""
             <div class="header-title">University Lost & Found</div>
             <div class="header-subtitle">Student & Lecturer Portal</div>
         </div>
-        <div class="nav-links">
-            <a href="#">Home</a>
-            <a href="#">Report Lost Item</a>
-            <a href="#">Report Found Item</a>
+        <div class="sys-label">
             <a href="#">System Administrator</a>
         </div>
     </div>
@@ -230,6 +227,7 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
