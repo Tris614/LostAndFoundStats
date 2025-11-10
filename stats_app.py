@@ -128,7 +128,7 @@ def load_items_from_db(start_dt, end_dt):
     WHERE CreatedDate BETWEEN ? AND ?
     """
 
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 @st.cache_data(ttl=300)
@@ -139,7 +139,7 @@ def load_claims_from_db(start_dt, end_dt):
     FROM Claims
     WHERE CreatedDate BETWEEN ? AND ?
     """
-    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
+    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
 
 
 # UI
@@ -222,3 +222,4 @@ if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
+
