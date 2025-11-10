@@ -7,14 +7,14 @@ import streamlit as st
 def get_engine():
     secrets = st.secrets["azure_sql"]
 
-    # e.g. "richfield.database.windows.net,1433"
+   # streamlit works with secrets for connection details
     server_full = secrets["server"]
     host, port = server_full.split(",")
     database = secrets["database"]
     username = secrets["username"]
     password = secrets["password"]
 
-    # Build ODBC connection string
+    # build ODBC connection string
     odbc_str = (
         "Driver={ODBC Driver 17 for SQL Server};"
         f"Server={host},{port};"
@@ -52,4 +52,5 @@ def test_connection():
         return True
     except Exception:
         return False
+
 
