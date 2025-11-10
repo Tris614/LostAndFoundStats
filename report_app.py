@@ -107,7 +107,7 @@ st.markdown("""
             <div class="header-subtitle">Student & Lecturer Portal</div>
         </div>
         <div class="sys-label">
-            <a href="#">System Administrator</a>
+            <a>System Administrator</a>
         </div>
     </div>
 </div>
@@ -227,6 +227,7 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
