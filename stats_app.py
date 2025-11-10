@@ -17,11 +17,6 @@ st.markdown(
             display: none !important;
         }
 
-        /*background*/
-        [data-testid="stAppViewContainer"] {
-            background-color: #F4F6FA !important;
-        }
-
         /*header*/
         .custom-header {
             background-color: #1e3a8a;
@@ -58,12 +53,12 @@ st.markdown(
             opacity: 0.9;
         }
 
-        .nav-links {
+        .sys-label {
             display: flex;
             gap: 2.5rem;
         }
 
-        .nav-links a {
+        .sys-label a {
             color: white;
             text-decoration: none;
             font-size: 1.10rem;
@@ -109,8 +104,8 @@ st.markdown("""
             <div class="header-title">University Lost & Found</div>
             <div class="header-subtitle">Student & Lecturer Portal</div>
         </div>
-        <div class="nav-links">
-            <a href="#">System Administrator</a>
+        <div class="sys-label">
+            <a>System Administrator</a>
         </div>
     </div>
 </div>
@@ -169,7 +164,7 @@ for df in [items_df, claims_df]:
         df["CreatedDate"] = pd.to_datetime(df["CreatedDate"], errors="coerce")
 
 
-# key points indicators
+# calc key points indicators
 total_lost = int((items_df["Status"] == 0).sum()
                  ) if "Status" in items_df else 0
 total_found = int((items_df["Status"] == 1).sum()
@@ -177,7 +172,7 @@ total_found = int((items_df["Status"] == 1).sum()
 total_claimed = int(
     (items_df["Status"] == 2).sum()) if "Status" in items_df else 0
 
-# recovery rate
+# work out recovery rate
 recovery_rate = (total_claimed / total_lost * 100) if total_lost > 0 else 0.0
 
 k1, k2, k3 = st.columns(3)
@@ -222,4 +217,5 @@ if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
+
 
