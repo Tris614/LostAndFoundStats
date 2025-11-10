@@ -1,8 +1,7 @@
-import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from datetime import datetime, timedelta
+import streamlit as st
 
 import db_helper
 
@@ -13,7 +12,7 @@ st.set_page_config(page_title="Admin Stats", layout="centered",
 st.markdown(
     """
     <style>
-        /*hide streamlit options*/
+        /*hiding streamlit options*/
         header[data-testid="stHeader"], #MainMenu, footer {
             display: none !important;
         }
@@ -111,9 +110,6 @@ st.markdown("""
             <div class="header-subtitle">Student & Lecturer Portal</div>
         </div>
         <div class="nav-links">
-            <a href="#">Home</a>
-            <a href="#">Report Lost Item</a>
-            <a href="#">Report Found Item</a>
             <a href="#">System Administrator</a>
         </div>
     </div>
@@ -122,7 +118,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # pulling from DB
-
 
 @st.cache_data(ttl=300)
 def load_items_from_db(start_dt, end_dt):
@@ -133,7 +128,7 @@ def load_items_from_db(start_dt, end_dt):
     WHERE CreatedDate BETWEEN ? AND ?
     """
 
-    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
+    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
 
 
 @st.cache_data(ttl=300)
@@ -144,7 +139,7 @@ def load_claims_from_db(start_dt, end_dt):
     FROM Claims
     WHERE CreatedDate BETWEEN ? AND ?
     """
-    return db_helper.query_to_df(sql, params=(start_dt, end_dt))
+    return db_helper.query_to_df(sql, params=[start_dt, end_dt])
 
 
 # UI
@@ -169,13 +164,10 @@ items_df = load_items_from_db(start_dt, end_dt)
 claims_df = load_claims_from_db(start_dt, end_dt)
 
 # validate datetimes columns
-for col in ["CreatedDate"]:
-    if col in items_df.columns:
-        items_df["CreatedDate"] = pd.to_datetime(
-            items_df["CreatedDate"], errors="coerce")
-    if col in claims_df.columns:
-        claims_df["CreatedDate"] = pd.to_datetime(
-            claims_df["CreatedDate"], errors="coerce")
+for df in [items_df, claims_df]:
+    if "CreatedDate" in df.columns:
+        df["CreatedDate"] = pd.to_datetime(df["CreatedDate"], errors="coerce")
+
 
 # key points indicators
 total_lost = int((items_df["Status"] == 0).sum()
@@ -193,14 +185,12 @@ k1.metric("Total Lost Items", total_lost)
 k2.metric("Total Found Items", total_found)
 k3.metric("Recovery Rate (%)", f"{recovery_rate:.1f}%")
 
-# category breakdown
+# category breakdown pie
 if "Category" in items_df.columns:
     cat_counts = items_df.groupby("Category").size().reset_index(name="count")
     fig_pie = px.pie(cat_counts, names="Category",
                      values="count", title="Category Breakdown")
     st.plotly_chart(fig_pie, use_container_width=True)
-
-st.write(items_df[["ItemId", "Status", "CreatedDate"]].head(10))
 
 # lost vs found per month
 if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
@@ -225,10 +215,10 @@ if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
             y="count",
             color="StatusLabel",
             barmode="group",
-            title="Lost vs Found (per month)"
+            title="Lost vs Found (per month)",
+            color_discrete_map={"Lost":"#eeb434",
+            "Found":"#0053ff"}
         )
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
-
-
