@@ -141,6 +141,8 @@ def load_claims_from_db(start_dt, end_dt):
 st.title("Admin Stats")
 st.write("Statistics and KPIs for Lost & Found")
 
+# begin date will be 3 months back
+# end date is today
 today = datetime.now().date()
 default_start = today - timedelta(days=90)
 
@@ -217,5 +219,6 @@ if "CreatedDate" in items_df.columns and "Status" in items_df.columns:
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No Lost or Found items found for the selected period.")
+
 
 
