@@ -19,11 +19,6 @@ st.markdown(
             display: none !important;
         }
 
-        /*background*/
-        [data-testid="stAppViewContainer"] {
-            background-color: #F4F6FA !important;
-        }
-
         /*header*/
         .custom-header {
             background-color: #1e3a8a;
@@ -235,6 +230,7 @@ if st.button("Generate Report"):
             file_name=fin_file,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 
 
