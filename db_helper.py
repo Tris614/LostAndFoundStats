@@ -31,7 +31,7 @@ def get_engine():
     return create_engine(conn_str)
 
 
-def query_to_df(query, params=None, fallback_df=None):
+def query_to_df(query, params=None):
     try:
         engine = get_engine()
         with engine.connect() as conn:
@@ -39,8 +39,6 @@ def query_to_df(query, params=None, fallback_df=None):
         return df
     except Exception as e:
         st.error(f"Database connection failed: {e}")
-        if fallback_df is not None:
-            return fallback_df
         return pd.DataFrame()
 
 
@@ -52,4 +50,5 @@ def test_connection():
         return True
     except Exception:
         return False
+
 
